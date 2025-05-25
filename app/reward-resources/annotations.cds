@@ -1,0 +1,1 @@
+using RewardsMgmtService as service from '../../srv/service';
