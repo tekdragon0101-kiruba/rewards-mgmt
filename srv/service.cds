@@ -53,11 +53,6 @@ service RewardsMgmtService {
             }  )
         };
 
-    @Common.SideEffects #parentCategoryEnabled: {
-        $Type           : 'Common.SideEffectsType',
-        SourceProperties: [isChild],
-        TargetProperties: [parentCategory_ID, ],
-    }
     @Common                                   : {SideEffects: {
         $Type         : 'Common.SideEffectsType',
         TargetEntities: ['/RewardsMgmtService.EntityContainer/Categories'],

@@ -16,6 +16,7 @@
   },
   "scripts": {
     "start": "cds-serve",
+    "watch-hybrid-hana": "cds watch --profile hybrid",
     "watch-categories": "cds watch --open categories/webapp/index.html?sap-ui-xx-viewCache=false",
     "watch-reward-resources": "cds watch --open reward-resources/webapp/index.html?sap-ui-xx-viewCache=false"
   },
