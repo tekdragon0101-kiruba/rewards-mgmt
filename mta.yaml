@@ -1,0 +1,140 @@
+_schema-version: 3.3.0
+ID: my-rewards-mgmt
+description: A simple CAP project.
+version: 1.0.0
+modules:
+- name: my-rewards-mgmt-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: my-rewards-mgmt-db
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+    instances: 1
+  build-parameters:
+    builder: npm-ci
+- name: my-rewards-mgmt-db-deployer
+  type: hdb
+  path: gen/db
+  requires:
+  - name: my-rewards-mgmt-db
+  parameters:
+    buildpack: nodejs_buildpack
+- name: my-rewards-mgmt-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: my-rewards-mgmt-destination-service
+    parameters:
+      content-target: true
+  - name: my-rewards-mgmt_html_repo_host
+    parameters:
+      service-key:
+        name: my-rewards-mgmt_html_repo_host-key
+  - name: uaa_my-rewards-mgmt
+    parameters:
+      service-key:
+        name: uaa_my-rewards-mgmt-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: my_rewards_mgmt_my_rewards_mgmt_html_repo_host
+          ServiceInstanceName: my-rewards-mgmt-html5-app-host-service
+          ServiceKeyName: my-rewards-mgmt_html_repo_host-key
+          sap.cloud.service: my-rewards-mgmt
+        - Authentication: OAuth2UserTokenExchange
+          Name: my_rewards_mgmt_uaa_my_rewards_mgmt
+          ServiceInstanceName: my-rewards-mgmt-xsuaa-service
+          ServiceKeyName: uaa_my-rewards-mgmt-key
+          sap.cloud.service: my-rewards-mgmt
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: my-rewards-mgmt-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: my-rewards-mgmt_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - formecategories.zip
+      name: formecategories
+      target-path: resources/
+    - artifacts:
+      - formerewardresources.zip
+      name: formerewardresources
+      target-path: resources/
+- name: formecategories
+  type: html5
+  path: app/categories
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+- name: formerewardresources
+  type: html5
+  path: app/reward-resources
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: my-rewards-mgmt-db
+  type: com.sap.xs.hdi-container
+  parameters:
+    service: hana
+    service-plan: hdi-shared
+- name: my-rewards-mgmt-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: my-rewards-mgmt-destination-service
+    service-plan: lite
+- name: my-rewards-mgmt_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: my-rewards-mgmt-html5-app-host-service
+    service-plan: app-host
+- name: uaa_my-rewards-mgmt
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: my-rewards-mgmt-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npm ci
+    - npx cds build --production
